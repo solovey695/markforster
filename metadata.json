@@ -1,0 +1,7 @@
+{
+  "name": "Mark Forster System",
+  "description": "An all-in-one productivity application combining Mark Forster-style task management, a detailed habit tracker, project organization, and gamification elements to boost motivation. Features multiple themes and comprehensive metrics.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

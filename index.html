@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mark Forster</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✅</text></svg>">
+    
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0d0d1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mark Forster">
+    <link rel="apple-touch-icon" href="/icon.svg">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "@testing-library/jest-dom": "https://aistudiocdn.com/@testing-library/jest-dom@^6.9.1",
+    "@testing-library/react": "https://aistudiocdn.com/@testing-library/react@^16.3.0",
+    "@jest/globals": "https://aistudiocdn.com/@jest/globals@^30.2.0",
+    "@testing-library/user-event": "https://aistudiocdn.com/testing-library/user-event@^14.6.1",
+    "jest-axe": "https://aistudiocdn.com/jest-axe@^10.0.0",
+    "jest-axe/": "https://aistudiocdn.com/jest-axe@^10.0.0/"
+  }
+}
+</script>
+<style>
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  
+  body {
+    font-family: 'Manrope', sans-serif;
+    overflow-x: hidden;
+    line-height: 1.6;
+    color: var(--text-color);
+  }
+
+  .app-layout {
+    display: grid;
+    height: 100vh;
+    padding: 1.5rem;
+    overflow: hidden;
+    position: relative;
+    transition: grid-template-columns 0.3s ease-in-out;
+    grid-template-columns: 280px 1fr;
+    gap: 1.5rem;
+  }
+  
+  .app-layout.sidebar-collapsed {
+    grid-template-columns: 80px 1fr;
+  }
+
+  .sidebar {
+    height: calc(100vh - 3rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    overflow-y: auto;
+    min-width: 0;
+    transition: transform 0.3s ease-in-out, min-width 0.3s ease-in-out, width 0.3s ease-in-out;
+  }
+
+  .main-content {
+    height: calc(100vh - 3rem);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow-y: auto;
+  }
+  
+  .quick-add-task {
+    margin-bottom: 1rem;
+  }
+  
+  .backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 30;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-in-out;
+  }
+  
+  .backdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+
+  /* Mobile Styles */
+  @media (max-width: 1024px) {
+    .app-layout {
+      grid-template-columns: 1fr;
+      padding: 1rem;
+    }
+
+    .app-layout.sidebar-collapsed {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 280px;
+      z-index: 40;
+      transform: translateX(-100%);
+      padding: 1.5rem;
+      gap: 1rem;
+      height: 100%;
+      background-color: var(--bg-main); /* To avoid transparency issues */
+    }
+
+    .app-layout.sidebar-open .sidebar {
+      transform: translateX(0);
+      box-shadow: 10px 0 20px rgba(0,0,0,0.2);
+    }
+    
+    .main-content, .sidebar {
+        height: calc(100vh - 2rem);
+    }
+  }
+
+  /* Animated Checkbox */
+  .animated-checkbox {
+      cursor: pointer;
+  }
+  .animated-checkbox .checkbox-circle {
+      stroke: var(--glass-border);
+      transition: stroke 0.2s ease;
+  }
+  .animated-checkbox:hover .checkbox-circle {
+      stroke: var(--accent-soft);
+  }
+  .animated-checkbox .checkbox-checkmark {
+      stroke: var(--completed);
+      stroke-dasharray: 20;
+      stroke-dashoffset: 20;
+      transition: stroke-dashoffset 0.3s ease-in-out;
+  }
+  .animated-checkbox.completed .checkbox-checkmark {
+      stroke-dashoffset: 0;
+  }
+
+  .fireworks-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 1px;
+      height: 1px;
+      pointer-events: none;
+      z-index: 100;
+  }
+
+  .firework-particle {
+      position: absolute;
+      width: var(--size, 4px);
+      height: var(--size, 4px);
+      border-radius: 50%;
+      background-color: hsl(var(--hue), 100%, 70%);
+      box-shadow: 0 0 5px hsl(var(--hue), 100%, 70%), 0 0 10px hsl(var(--hue), 100%, 70%);
+      opacity: 0;
+      animation: explode ease-out forwards;
+  }
+
+  @keyframes explode {
+      from {
+          transform: translate(0, 0) scale(1);
+          opacity: 1;
+      }
+      to {
+          transform: translate(var(--x), var(--y)) scale(0);
+          opacity: 0;
+      }
+  }
+
+  .verb-green { color: #A9DC76; font-weight: 500; }
+  .verb-red { color: #FF6188; font-weight: 500; }
+  .verb-blue { color: #7aa2f7; font-weight: 500; }
+  .verb-purple { color: #bb9af7; font-weight: 500; }
+  .verb-orange { color: #FFD866; font-weight: 500; }
+  
+  .dark-theme .verb-green { color: #A9DC76; }
+  .dark-theme .verb-red { color: #FF6188; }
+  .dark-theme .verb-blue { color: #7aa2f7; }
+  .dark-theme .verb-purple { color: #bb9af7; }
+  .dark-theme .verb-orange { color: #FFD866; }
+  
+  .light-theme .verb-green { color: #16a34a; }
+  .light-theme .verb-red { color: #dc2626; }
+  .light-theme .verb-blue { color: #2563eb; }
+  .light-theme .verb-purple { color: #7c3aed; }
+  .light-theme .verb-orange { color: #f97316; }
+
+  /* Minimalistic Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--glass-border);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--accent-soft);
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--glass-border) transparent;
+  }
+
+  /* Kanban Styles */
+  .kanban-board {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    height: 100%;
+    padding-bottom: 1rem;
+    align-items: flex-start;
+  }
+  .kanban-column {
+    flex: 0 0 320px;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--glass-bg);
+    border-radius: 12px;
+    max-height: 100%;
+    border: 1px solid var(--glass-border);
+  }
+  .kanban-column-header {
+    font-weight: 600;
+    font-size: 1.1rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--glass-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .kanban-cards {
+    flex-grow: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+  .kanban-card {
+    background-color: var(--bg-container);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    cursor: grab;
+    box-shadow: 0 1px 3px var(--shadow-color);
+    transition: all 0.2s ease;
+  }
+  .kanban-card:hover {
+    box-shadow: 0 4px 8px var(--shadow-color);
+    border-color: var(--accent-soft);
+    transform: translateY(-2px);
+  }
+  .kanban-card.dragging {
+    opacity: 0.5;
+    transform: rotate(3deg);
+    background-color: var(--accent-soft);
+  }
+  .drop-indicator {
+      height: 3px;
+      background-color: var(--accent-neon);
+      margin: 4px 0;
+      border-radius: 1.5px;
+      animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Command Palette */
+  .command-palette-container {
+    transform: translateY(-20px) scale(0.95);
+    opacity: 0;
+    transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+    pointer-events: none;
+  }
+  .command-palette-container.visible {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  
+  /* Task Focus View */
+  .task-focus-view {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background-color: var(--bg-main);
+    padding: 2rem;
+    animation: fadeIn 0.3s ease-out;
+    overflow-y: auto;
+  }
+  .task-focus-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .task-focus-main {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+  }
+  .task-focus-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+  }
+
+  @media (max-width: 1024px) {
+    .task-focus-grid {
+      grid-template-columns: 1fr;
+    }
+    .task-focus-view {
+      padding: 1rem;
+    }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Syntax Highlighting */
+  .task-text-editable pre {
+    background-color: rgba(0,0,0,0.2);
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin: 0.5rem 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .task-text-editable pre code.hljs {
+    background: transparent;
+    padding: 0;
+    font-size: 0.9em;
+  }
+  .task-text-editable code.inline-code {
+    background-color: var(--glass-bg);
+    color: var(--accent-soft);
+    padding: 0.2em 0.4em;
+    margin: 0;
+    font-size: 85%;
+    border-radius: 6px;
+    font-family: 'Courier New', Courier, monospace;
+  }
+  
+  /* Voice Input Animation */
+  .voice-btn.listening svg {
+    color: var(--undone);
+    animation: pulse-voice 1.5s infinite ease-in-out;
+  }
+
+  @keyframes pulse-voice {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.2);
+    }
+  }
+
+</style>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            })
+            .catch(err => {
+              console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+      }
+    </script>
+  </body>
+</html>
